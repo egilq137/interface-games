@@ -27,7 +27,7 @@ deferred to Step 6 with a known answer. Boundary *values* are outputs of Step 2.
   CR3 = identity map; IF3 = folded map [0,1,2,1,0]. (Reordered before the optimizer so it covers both.)
 - Chunk 5: **general boundary optimizer** (solo foraging) — search boundary positions maximizing each
   strategy's expected payoff; anchor-check CR3 ≈ 30/70 and IF3's shape against Fig. 13. Freeze into ledger.
-- Chunk 6: assemble full 3×3 matrix (with faster-first turn order) → validate vs Table 3.
+- Chunk 6: assemble full 3×3 matrix (coin-flip turn order) → validate vs Table 3.
 - Chunk 7: add cost layer (Eq. 20) → check Tables 4/5 + bifurcation (~4.27%).
 
 Open knobs to settle at the top of Step 2:
@@ -62,29 +62,26 @@ averaged over random environments **and** over turn order.
 
 ---
 
-## Mechanism #1b — turn order  ✅ locked (⚙️ falsifiable against oracle)
+## Mechanism #1b — turn order  ✅ locked: **coin-flip every pairing** (oracle-validated)
 
-The paper states only two concrete cases:
-- **Unequal perceptual speed → the faster (cheaper) perceiver chooses first, deterministically**
-  ("seeing more data takes more time"; simple always precedes truth).
-- **Equal speed → coin flip**; expected payoff is the average of choosing-first and choosing-second
-  (simple vs simple, Eq. 11).
+The paper states two concrete cases:
+- **2-strategy simple-vs-truth game:** the faster (cheaper) perceiver chooses first, deterministically
+  ("seeing more data takes more time"; simple precedes truth).
+- **Equal speed → coin flip**; expected payoff = average of choosing-first and choosing-second (Eq. 11).
 
-The general "priority settled probabilistically" is never expanded into a formula. Speed = fewer
-perceptual categories. For our three strategies: **Truth** is slowest; **CR3** and **IF3** tie (both 3 categories).
+For the **3-strategy game (Fig. 14)** the paper only says "priority of choice is settled
+**probabilistically**" — never a deterministic rule.
 
-**Working rule:** *faster-first, tie → coin-flip.*
+**We first assumed *faster-first* — the oracle falsified it.** A preliminary Table-3 recreation
+(eyeballed boundaries, cost 0) showed faster-first makes **Truth earn the *least*** (it is slowest,
+so always moves second), whereas the paper has Truth earn the *most* — max |diff| ≈ 14.7. Switching
+to a **plain 50/50 coin flip for every pairing** dropped max |diff| to ≈ 2.8 and mean |diff| to ≈ 1.0,
+matching the whole Truth row/column to < 0.8. So "probabilistic priority" = random order.
 
-| pairing        | who chooses first |
-|----------------|-------------------|
-| Truth vs CR3   | CR3 (faster)      |
-| Truth vs IF3   | IF3 (faster)      |
-| CR3 vs IF3     | coin flip (tie)   |
-| any self-pair  | coin flip         |
+**Locked rule:** *every pairing's turn order is a 50/50 coin flip* → expected payoff to strategy i vs j
+= ½·(i-moves-first payoff + i-moves-second payoff), averaged over competitions.
 
-⚙️ First suspect if Step 5 misses Table 3; alternatives to test then = always-coin-flip, or cost-weighted priority.
-
-*(Paper: lines ~166–169, 242, 254–256.)*
+*(Paper: lines ~166–169, 242, 254–256. Validation: preliminary Table-3 recreation, this repo.)*
 
 ---
 
@@ -183,7 +180,7 @@ Bolt on after the cost-0 matrix validates against Table 3.
 | $r$ | resources per territory | 1 | paper (Fig. 14) | ✅ |
 | $m$ | max resource quantity | 100 | paper | ✅ |
 | — | quantity distribution | Uniform{1..100}, iid | paper | ✅ |
-| turn order | who picks first | faster-first, tie→coin-flip | paper (partial) + ⚙️ | 🔶 falsifiable |
+| turn order | who picks first | coin-flip 50/50, every pairing | oracle-validated vs Table 3 | ✅ (faster-first falsified) |
 | $\mu$ | utility mean | 50 | paper caption | ✅ |
 | $\sigma$ | utility std dev | 20 | paper caption | ✅ |
 | $A$ | utility amplitude | 100 | ⚙️ working assumption | 🔶 oracle to confirm |
