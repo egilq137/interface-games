@@ -28,8 +28,9 @@ deferred to Step 6 with a known answer. Boundary *values* are outputs of Step 2.
 - Chunk 5 ✅ boundary optimizer (solo-foraging grid search): CR3 → [31,71] (Fig. 13 anchor confirmed),
   IF3 → [22,36,64,78]. With derived boundaries + coin-flip order, the full cost-0 3×3 matrix reproduces
   **Table 3 to max |diff| 0.22, mean 0.06** — the whole Route-B reconstruction is validated end to end.
-- Chunk 6 ← formalize the matrix assembly into tested `sim/` code (a `payoff_matrix(cost=0)` function).
-- Chunk 7: add cost layer (Eq. 20) → check Tables 4/5 + bifurcation (~4.27%).
+- Chunk 6 ✅ formalized the cost-0 matrix in `sim/payoff_matrix.py` (`base_payoff_matrix`, frozen
+  boundaries + coin-flip order, `PayoffMatrix` dataclass). Test reproduces Table 3 to ±0.5.
+- Chunk 7 ← add cost layer (Eq. 20) → check Tables 4/5 + bifurcation (~4.27%).
 
 Open knobs to settle at the top of Step 2:
 - **Reference for optimization** ("optimal against whom"): solo foraging / specific opponent / mixed field.
