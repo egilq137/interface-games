@@ -1,0 +1,95 @@
+================================================================================
+INTERFACE GAMES — Figure 14 Interactive Replicator Simplex
+Specification (v0.1 — draft)
+================================================================================
+
+GOAL
+--------------------------------------------------------------------------------
+Reproduce and make interactive Figure 14 of Mark, Marion & Hoffman (2010):
+the replicator-dynamics flow over a triangle (simplex) of three perceptual
+strategies — TRUTH, CR3, IF3 — showing how the population evolves, and how a
+COST dial moves the system from "truth wins" to "interface (IF3) wins"
+(the bifurcation where realist perception goes extinct).
+
+Stack decision: VANILLA JS + Canvas/SVG, single embeddable page.
+Payoffs: CLOSED-FORM from the 2010 model (exact, not hand-tuned) — TBD next.
+
+
+--------------------------------------------------------------------------------
+SHARED MATH CORE (identical for both builds; the only unit-tested code)
+--------------------------------------------------------------------------------
+  payoffs(cost) -> { fTruth, fCR3, fIF3 }
+      Closed-form payoff of each strategy as a function of perceptual cost.
+      Cost = bits of precision * per-bit cost, subtracted from raw payoff.
+      Truth = most expensive (resolves everything); IF3 = cheap (lumps states).
+      [Exact formulas to be extracted from mark_hoffman_2010.pdf — NEXT STEP.]
+
+  velocity(state, f) -> { dTruth, dCR3, dIF3 }
+      Replicator equation:  x_i_dot = x_i * (f_i - fbar)
+      where state = {xTruth, xCR3, xIF3}, sum = 1
+            fbar  = xTruth*fTruth + xCR3*fCR3 + xIF3*fIF3
+      Properties to preserve/test:
+        - shares always re-sum to 1 (conservation via subtracting fbar)
+        - x_i = 0  =>  x_i_dot = 0 (extinct stays extinct; can't resurrect)
+        - |f_i - fbar| = flow speed  =>  drives arrow thickness/length
+
+  Simplex geometry helpers:
+      barycentric (xTruth,xCR3,xIF3) <-> 2D pixel coords
+      point-in-triangle test (for Build B seeding / clamping)
+
+
+--------------------------------------------------------------------------------
+BUILD A — "THE FIELD"  (static Figure 14 replica)
+--------------------------------------------------------------------------------
+  Purpose: faithful static reproduction of Fig. 14's arrow field, live-driven
+           by the cost slider.
+
+  Elements:
+    - Triangle with labeled corners: TRUTH, CR3, IF3.
+      Corner = 100% that strategy; edge = third strategy extinct;
+      interior = all three coexist.
+    - Vector field: arrows on a sampled grid of interior points.
+        direction  = velocity(point)
+        thickness/length ∝ |f_i - fbar| (magnitude of flow)
+        => arrows thin near corners (attractor/repeller decel), thick mid-field.
+    - COST SLIDER: on change, recompute payoffs -> re-evaluate whole grid ->
+        arrows MORPH SMOOTHLY to new field (interpolate old->new ~300ms).
+    - Attractor indicator: mark the corner(s) the flow converges to at current
+        cost; visibly flips at the bifurcation cost.
+
+  Nice-to-have (later, not now):
+    - Subtle directional "shimmer"/motion on each arrow hinting flow direction,
+      without full particle animation.
+
+
+--------------------------------------------------------------------------------
+BUILD B — "THE TRAJECTORY"  (evolution animation)
+--------------------------------------------------------------------------------
+  Purpose: let the user pick a starting population mix and watch replicator
+           dynamics carry it across the simplex over time.
+
+  Elements:
+    - Same triangle.
+    - User sets STARTING MIX: click/drag a point inside the triangle
+        (= initial {xTruth, xCR3, xIF3}). Optionally numeric inputs too.
+    - PLAY: integrate velocity step-by-step (Euler: state += velocity*dt),
+        animate a dot tracing its path, leaving a fading trail.
+    - Converges to the current attractor corner/edge.
+    - COST: fixed per run, or adjustable to watch the target move.
+    - Reset / replay.
+
+  Teaching notes surfaced by this build:
+    - Seeding a strategy at 0% => it can never enter (the x_i gotcha).
+    - S-curve takeover: slow-fast-slow.
+
+
+--------------------------------------------------------------------------------
+OPEN ITEMS / NEXT STEPS
+--------------------------------------------------------------------------------
+  1. [NEXT] Extract exact closed-form payoffs(cost) from mark_hoffman_2010.pdf
+            + notes/mark-2010-interface-games.md. Pin the bifurcation cost.
+  2. Decide grid resolution + arrow scaling constants (Build A).
+  3. Decide integration dt + trail length (Build B).
+  4. Layout: two builds as separate views/tabs, or one page with a mode toggle.
+  5. Nice-to-have arrow shimmer approach (Build A).
+================================================================================

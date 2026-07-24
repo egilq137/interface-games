@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# Copyrighted source PDFs - keep local, never publish
+papers/
+
+# Local Claude Code settings (personal permissions/paths)
+.claude/settings.local.json
+
+# Personal Obsidian vault config (editor layout/state)
+.obsidian/
