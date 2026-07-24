@@ -14,7 +14,12 @@ All candidates are scored on the SAME fixed batch of foraging rounds and the sam
 tie-break seed (common random numbers), so the comparison between candidates is
 clean and the whole search is deterministic.
 
-Tests: sim/tests/test_optimize.py
+The whole search, in miniature (CR3):
+    candidate_boundaries = [[30, 70], [10, 20], [45, 55]]   # each row = one config to try
+    scores               = [ 72.9,     58.1,     69.4    ]  # solo_foraging_payoff of each
+    -> optimal_boundaries = [30, 70]                         # the argmax row
+
+Tests: sim/tests/test_boundary_search.py
 """
 from __future__ import annotations
 
@@ -53,6 +58,11 @@ def solo_foraging_payoff(
     `preferences` and `round_utilities` are both shape (rounds, territories);
     `round_utilities` is utility(foraging_rounds), precomputed once so the search does
     not recompute it for every candidate.
+
+    Example (1 round, 3 territories):
+        preferences     = [[10, 30, 20]]   # territory 1 is most preferred
+        round_utilities = [[ 5,  9,  7]]   # its worth is 9
+        returns           9.0              # forager takes territory 1, collects 9
     """
     available = np.ones_like(preferences, dtype=bool)
     choice = most_preferred(preferences, available, rng)
@@ -72,6 +82,11 @@ def optimize_boundaries(
     Each candidate is scored on the SAME `foraging_rounds` and the same tie-break seed
     (common random numbers), so payoff differences reflect the boundaries, not sampling
     noise, and the result is deterministic.
+
+    Example (searching 3 CR3 configs):
+        candidate_boundaries = [[30, 70], [10, 20], [45, 55]]
+        build_preferences    = cr3_preferences
+        -> scores  [72.9, 58.1, 69.4]  ->  optimal_boundaries = [30, 70]
     """
     candidate_payoffs = np.empty(len(candidate_boundaries), dtype=float)
     for index, boundaries in enumerate(candidate_boundaries):
@@ -89,7 +104,11 @@ def optimize_boundaries(
 
 
 def cr3_candidate_boundaries() -> NDArray:
-    """Every ordered pair of integer boundaries 1 <= b1 < b2 <= MAX-1 (unconstrained)."""
+    """Every ordered pair of integer boundaries 1 <= b1 < b2 <= MAX-1 (unconstrained).
+
+    Each row is one [b1, b2] config; C(99, 2) = 4851 rows:
+        [[1, 2], [1, 3], ..., [31, 71], ..., [98, 99]]
+    """
     highest = MAX_RESOURCE_VALUE - 1  # a boundary at MAX would leave the top band empty
     pairs = [(b1, b2) for b1 in range(1, highest + 1) for b2 in range(b1 + 1, highest + 1)]
     return np.array(pairs, dtype=float)
@@ -97,7 +116,11 @@ def cr3_candidate_boundaries() -> NDArray:
 
 def if3_symmetric_candidate_boundaries() -> NDArray:
     """Integer boundaries symmetric about the peak: [peak-w2, peak-w1, peak+w1, peak+w2]
-    for 1 <= w1 < w2, staying inside [1, MAX-1]. Two free half-widths (green, outer)."""
+    for 1 <= w1 < w2, staying inside [1, MAX-1]. Two free half-widths (green, outer).
+
+    Each row is one 4-boundary config; e.g. w1=14, w2=28 -> [22, 36, 64, 78]
+    (green peak band 36-64, yellow shoulders, red tails). ~1176 rows.
+    """
     peak = int(PEAK_RESOURCE_VALUE)
     widest = min(peak - 1, MAX_RESOURCE_VALUE - 1 - peak)  # keep all four boundaries in range
     candidates = [
