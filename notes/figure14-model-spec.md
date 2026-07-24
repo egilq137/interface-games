@@ -25,9 +25,10 @@ deferred to Step 6 with a known answer. Boundary *values* are outputs of Step 2.
 - Chunk 3 ✅ CR3: general `categorize` (B boundaries → B+1 bands) + preference-by-band-expected-utility.
 - Chunk 4 ← IF3: same machinery + a **zone→label map** for non-contiguous labels (tails/shoulders/peak).
   CR3 = identity map; IF3 = folded map [0,1,2,1,0]. (Reordered before the optimizer so it covers both.)
-- Chunk 5: **general boundary optimizer** (solo foraging) — search boundary positions maximizing each
-  strategy's expected payoff; anchor-check CR3 ≈ 30/70 and IF3's shape against Fig. 13. Freeze into ledger.
-- Chunk 6: assemble full 3×3 matrix (coin-flip turn order) → validate vs Table 3.
+- Chunk 5 ✅ boundary optimizer (solo-foraging grid search): CR3 → [31,71] (Fig. 13 anchor confirmed),
+  IF3 → [22,36,64,78]. With derived boundaries + coin-flip order, the full cost-0 3×3 matrix reproduces
+  **Table 3 to max |diff| 0.22, mean 0.06** — the whole Route-B reconstruction is validated end to end.
+- Chunk 6 ← formalize the matrix assembly into tested `sim/` code (a `payoff_matrix(cost=0)` function).
 - Chunk 7: add cost layer (Eq. 20) → check Tables 4/5 + bifurcation (~4.27%).
 
 Open knobs to settle at the top of Step 2:
@@ -183,11 +184,11 @@ Bolt on after the cost-0 matrix validates against Table 3.
 | turn order | who picks first | coin-flip 50/50, every pairing | oracle-validated vs Table 3 | ✅ (faster-first falsified) |
 | $\mu$ | utility mean | 50 | paper caption | ✅ |
 | $\sigma$ | utility std dev | 20 | paper caption | ✅ |
-| $A$ | utility amplitude | 100 | ⚙️ working assumption | 🔶 oracle to confirm |
+| $A$ | utility amplitude | 100 | ⚙️ working assumption | ✅ confirmed (Table 3 reproduced) |
 | decision order | which band an agent prefers | utility-tuned (prefer peak band) | paper (Sec. 8, Fig. 13) | ✅ |
-| CR3 boundaries | 2 cut-points | optimize ourselves (~30/70 expected) | our search; anchored to Fig. 13 | 🔶 to compute |
-| IF3 boundaries | 4 cut-points | optimize ourselves | our search; anchored to Fig. 13 | 🔶 to compute |
-| optimize against | reference opponent for boundary search | TBD (solo / opponent / mixed) | ⚙️ | ⬜ open (Step 2) |
+| CR3 boundaries | 2 cut-points | [31, 71] (≈ Fig. 13 [30,70]) | solo-foraging grid search | ✅ derived; anchor confirmed |
+| IF3 boundaries | 4 cut-points | [22, 36, 64, 78] (symmetric fold) | solo-foraging grid search | ✅ derived |
+| optimize against | reference for boundary search | solo foraging | our choice | ✅ (reproduces Table 3) |
 | cost layer | Eq. 20 | see Step 6 | paper, reverse-checked | ⏳ deferred |
 
 **Oracle (validation target) — Table 3, cost = 0** (rows = focal, cols = opponent):
