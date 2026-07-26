@@ -30,7 +30,9 @@ deferred to Step 6 with a known answer. Boundary *values* are outputs of Step 2.
   **Table 3 to max |diff| 0.22, mean 0.06** — the whole Route-B reconstruction is validated end to end.
 - Chunk 6 ✅ formalized the cost-0 matrix in `sim/payoff_matrix.py` (`base_payoff_matrix`, frozen
   boundaries + coin-flip order, `PayoffMatrix` dataclass). Test reproduces Table 3 to ±0.5.
-- Chunk 7 ← add cost layer (Eq. 20) → check Tables 4/5 + bifurcation (~4.27%).
+- Chunk 7 ✅ cost layer (Eq. 20) in `sim/cost_layer.py`: `cost_adjusted_matrix` reproduces the paper's
+  Tables 4 (1%) and 5 (10%) from Table 3 (±0.02). Bifurcation ~4.27% moved to Chunk 8 (needs replicator
+  dynamics). Goal + intuition: Mechanism #4 below, [[cost-layer-eq20]].
 
 Open knobs to settle at the top of Step 2:
 - **Reference for optimization** ("optimal against whom"): solo foraging / specific opponent / mixed field.
@@ -167,10 +169,54 @@ Fig. 13 cuts (~30/70 ≈ peak ± 1σ). Cross-check the optimizer against Fig. 13
 *against truth*. For the 3-strategy case we must pick a reference (solo foraging / specific opponent /
 mixed field) — deferred to Step 2, treated as a falsifiable knob.
 
-## Mechanism #4 — cost layer (Eq. 20)  ⏳ deferred to Step 6
+## Mechanism #4 — cost layer (Eq. 20)  ✅ CHUNK 7 (done)
 
-Already reverse-engineered from Tables 3–5 (cost subtracted per focal strategy: truth ≈ 16.5× CR3/IF3).
-Bolt on after the cost-0 matrix validates against Table 3.
+Full walkthrough + intuition: [[cost-layer-eq20]]. Cost subtracts `net = raw − cost` per strategy,
+where each strategy's cost is a single number applied to its whole row of the matrix.
+
+**Eq. 20** (cost = `ce·t·r·log2(q) + ck·r·q·nb`, with `t=3`, `r=1`, `ck = ce/10`) splits into
+*seeing* (classify → `log2(q)` bits) and *knowing* (store each category's utility → linear in `q`).
+The `ce` unit cancels — only the ratio of strategies' costs matters. Cost is verified to reproduce
+Tables 4/5 exactly (per-row constant subtraction; truth ≈ 86.37 bits-equiv, CR3 = IF3 ≈ 5.23, ratio 0.0606).
+The `truth ≈ 16.5×` figure is `86.37 / 5.23` — the knowing term (q=100) is what makes truth expensive.
+
+**The dial is a parameter, `truth_cost_percent`:** cost expressed as a percentage of truth's expected
+payoff (mean of the base matrix's Truth row ≈ 64.5). Fixes truth's cost directly; CR3/IF3 scale from it
+by 0.0606. The paper's Tables 4/5 are the 1% and 10% settings.
+
+### Chunk 7 goal — implement the cost layer, validate vs Tables 4/5
+
+Scope: cost layer only. Replicator dynamics, attractor detection, and the ~4.27% bifurcation are
+**Chunk 8** (they need the shared math core, not yet built).
+
+New files: `sim/cost_layer.py`, `sim/tests/test_cost_layer.py`.
+
+Module constants: `TERRITORIES = 3`, `RESOURCES_PER_TERRITORY = 1`, `KNOWLEDGE_COST_RATIO = 0.1`
+(= `ck/ce`), and the per-strategy `(number_of_categories, number_of_utility_values)`:
+Truth `(100, 100)`, CR3 `(3, 3)`, IF3 `(3, 3)`. Categories `q` (for *seeing*) and utility resolution
+(for *knowing*) are kept independent — the paper's 30-resource variant has `q=3` but `nb=log2(100)`.
+
+Functions (each an independent unit-test target):
+
+| function | signature | returns |
+|----------|-----------|---------|
+| `perception_cost_in_bits` | `(number_of_categories, number_of_utility_values) -> float` | `TERRITORIES*log2(q) + KNOWLEDGE_COST_RATIO*q*log2(utility_values)`; bits-equivalent (knowing term scaled). Truth→86.37, CR3/IF3→5.23. |
+| `truth_expected_payoff` | `(base_matrix) -> float` | mean of the matrix's Truth row (our base ≈ 64.5) |
+| `strategy_costs_at` | `(truth_cost_percent, base_matrix) -> dict[str, float]` | per-strategy cost in payoff-points; CR3/IF3 scaled from truth by the cost-in-bits ratio |
+| `cost_adjusted_matrix` | `(base_matrix, truth_cost_percent) -> PayoffMatrix` | new matrix, `C_i` subtracted from row `i` |
+
+Validation (oracle):
+1. `perception_cost_in_bits`: Truth ≈ 86.37, CR3 = IF3 ≈ 5.23; ratio ≈ 0.0606.
+2. `cost_adjusted_matrix(paper_table3, 1)` → **Table 4** (±0.02). One cell we take as `59.01` not the
+   paper's printed `58.02`: cost is one number per strategy (Appendix B), so all of CR3's row must shift
+   equally — its other cells drop ~0.03, so `59.05 − 0.04 = 59.01`. The printed `58.02` is inconsistent
+   with the paper's own row/method; cause unknown, recorded not diagnosed.
+3. `cost_adjusted_matrix(paper_table3, 10)` → **Table 5** (±0.02).
+4. Properties: `truth_cost_percent=0` is a no-op; CR3 and IF3 rows shift by the *same* amount;
+   every cell is monotonically non-increasing in `truth_cost_percent`.
+
+Tables 4/5 are checked against the **paper's** Table 3 (their published cells) minus cost, so the oracle
+stays exact despite our simulated base matrix differing slightly (their 63.43 vs our 63.45).
 
 ---
 
