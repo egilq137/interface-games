@@ -40,8 +40,10 @@ status; the full walkthrough and parameter ledger live in
   over the simplex, conserved and extinction-sticky (`sim/replicator.py`).
 - **Euler stepping** — integrate the velocity into a trajectory across the simplex
   (S-curve takeover, clamp + renormalize each step), for animated paths (`sim/stepper.py`).
+- **Bifurcation search** — detect which corner the flow settles on (`attractor`) and find the
+  cost band where Truth's win flips to IF3's; reproduces the paper's ~4.27% (`sim/bifurcation.py`).
 
-Next: attractor detection / the ~4.27% bifurcation, then the interactive builds in `spec.txt`.
+Next: the interactive Figure-14 builds in `spec.txt`.
 
 ## Project layout
 
@@ -49,7 +51,7 @@ Next: attractor detection / the ~4.27% bifurcation, then the interactive builds 
   - `model.py` — the world: Gaussian utility and the competition sampler.
   - `competition.py` — the turn-taking game plus the perceptual strategies.
   - `array_types.py` — semantic array type aliases (shapes documented on hover).
-  - `tests/` — the pytest suite (124 tests, every function checked independently).
+  - `tests/` — the pytest suite (131 tests, every function checked independently).
 - `notes/` — model-spec walkthrough and reading notes on the source papers.
 - `spec.txt` — spec for the eventual interactive Figure-14 visualizations.
 - `papers/` — source PDFs (local only; git-ignored, as they are copyrighted).
