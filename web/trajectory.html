@@ -53,8 +53,9 @@
 
     const COLORS = { Truth: "#1b9e77", CR3: "#7570b3", IF3: "#d95f02" };
     const TRIANGLE = [[220, 40], [40, 400], [400, 400]];   // [Truth, CR3, IF3]
-    const TIME_STEP = 0.03;         // per sub-step; small enough to look smooth
-    const STEPS_PER_FRAME = 2;      // sub-steps per animation frame (pace of the takeover)
+    const SIM_RATE = 1.6;           // replicator time-units advanced per real second (the watch pace)
+    const MAX_SUBSTEP = 0.03;       // Euler dt cap per sub-step (accuracy + a smooth trail)
+    const MAX_FRAME_GAP = 0.1;      // clamp real elapsed seconds so a stall/background can't jump the sim
     const SETTLED = 0.999;          // a share above this = converged to that corner
     const MAX_TRAIL = 700;
 
@@ -72,6 +73,7 @@
     let matrix = costAdjustedMatrix(BASE_MATRIX, Number(costSlider.value));
     let playing = false;
     let dragging = false;
+    let lastTime = null;            // previous frame timestamp, for real-time integration
 
     function settledWinner() {
       const lead = shares.indexOf(Math.max(...shares));
@@ -140,16 +142,23 @@
       }
     }
 
-    function frame() {
+    function frame(now) {
       if (playing) {
-        for (let s = 0; s < STEPS_PER_FRAME && !settledWinner(); s++) {
-          shares = eulerStep(shares, matrix, TIME_STEP);
+        // Advance simulation time by the REAL elapsed time * SIM_RATE, so the dot moves at the
+        // true replicator velocity in real time - fast mid-field, slow near a corner - independent
+        // of the frame rate. Integrate that in small fixed sub-steps for accuracy.
+        let simTime = Math.min((now - lastTime) / 1000, MAX_FRAME_GAP) * SIM_RATE;
+        while (simTime > 0 && !settledWinner()) {
+          const dt = Math.min(MAX_SUBSTEP, simTime);
+          shares = eulerStep(shares, matrix, dt);
           trail.push(barycentricToPixel(shares, TRIANGLE));
           if (trail.length > MAX_TRAIL) trail.shift();
+          simTime -= dt;
         }
         if (settledWinner()) { playing = false; playButton.textContent = "Play"; }
         render();
       }
+      lastTime = now;   // update every frame so a pause never causes a time jump on resume
       requestAnimationFrame(frame);
     }
 
