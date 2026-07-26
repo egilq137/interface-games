@@ -60,6 +60,20 @@ ZoneLabels: TypeAlias = Annotated[NDArray[np.intp], "shape (num_zones,) = (num_b
 """Maps each contiguous zone to a perceptual label; a label may repeat (non-contiguous).
 Example - CR3 (identity): [0, 1, 2]. IF3 (fold tails & shoulders): [0, 1, 2, 1, 0]."""
 
+# --- population dynamics: one value per strategy (canonical order Truth, CR3, IF3) ---
+
+PopulationShares: TypeAlias = Annotated[NDArray[np.floating], "shape (strategies,), each >= 0, sums to 1"]
+"""Fraction of the population running each strategy - a point in the simplex.
+Example (50% Truth, 30% CR3, 20% IF3): [0.5, 0.3, 0.2]."""
+
+StrategyFitness: TypeAlias = Annotated[NDArray[np.floating], "shape (strategies,)"]
+"""Expected payoff of each strategy against the current population (frequency-dependent).
+Example: [64.31, 59.40, 61.90]."""
+
+PopulationVelocity: TypeAlias = Annotated[NDArray[np.floating], "shape (strategies,), sums to 0"]
+"""Replicator rate of change of each strategy's share; components sum to 0 (shares stay on the simplex).
+Example: [+0.975, -0.44, -0.53]."""
+
 # --- flexible: elementwise helpers that accept a scalar or any-shaped array ---
 
 ResourceValues: TypeAlias = Annotated[NDArray[np.integer] | float, "scalar or array of any shape"]
