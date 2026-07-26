@@ -26,14 +26,16 @@
     .swatch { display: inline-block; width: 11px; height: 11px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
     .bar { display: inline-block; height: 10px; border-radius: 3px; vertical-align: middle; }
     .status { margin-top: 10px; font-weight: 600; }
+    label.arrows { font-size: 0.9rem; color: #444; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
   </style>
 </head>
 <body>
-  <h1>Interface games &mdash; the trajectory</h1>
-  <p class="sub">Click (or drag) inside the triangle to seed a starting population of the three
-    perceptual strategies, set the perceptual <b>cost</b>, and press <b>Play</b> to watch natural
-    selection carry it across the simplex. Low cost &rarr; truth wins; past ~4.27% &rarr; the
-    interface (IF3) wins. A strategy seeded at 0% can never enter.</p>
+  <h1>Interface games &mdash; Figure 14</h1>
+  <p class="sub">The <b>flow field</b> shows where selection pushes every population mix at the current
+    <b>cost</b> (arrows), with a ring on the attractor it converges to. Click (or drag) inside the
+    triangle to seed a starting mix and press <b>Play</b> to send a population riding along the flow.
+    Low cost &rarr; truth wins; past ~4.27% &rarr; the interface (IF3) wins. A strategy seeded at 0%
+    can never enter. Toggle the arrows to switch between the field and a clean trajectory.</p>
 
   <div class="row">
     <canvas id="view" width="460" height="460"></canvas>
@@ -41,6 +43,7 @@
       <div class="controls">
         <button id="play" class="primary">Play</button>
         <button id="reset">Reset</button>
+        <label class="arrows"><input type="checkbox" id="arrows" checked /> flow field</label>
       </div>
       <label class="cost">perceptual cost: <b id="costValue">2%</b> of truth's payoff</label>
       <input id="cost" type="range" min="0" max="100" step="0.01" value="2" />
@@ -69,6 +72,8 @@
     const SETTLED = 0.999;          // a share above this = converged to that corner
     const CONVERGED_SPEED = 2e-3;   // total |velocity| below this = flow effectively stopped (corner or coexistence)
     const MAX_TRAIL = 700;
+    const FIELD_STEPS = 11;         // grid resolution for the flow-field arrows (interior points only)
+    const ARROW_MAX_PX = 26;        // pixel length of the strongest arrow (the rest scale to it)
 
     const canvas = document.getElementById("view");
     const ctx = canvas.getContext("2d");
@@ -77,6 +82,7 @@
     const costSlider = document.getElementById("cost");
     const costValue = document.getElementById("costValue");
     const playButton = document.getElementById("play");
+    const arrowsCheckbox = document.getElementById("arrows");
 
     let seedShares = [1 / 3, 1 / 3, 1 / 3];   // where Reset returns to
     let shares = seedShares.slice();
@@ -85,6 +91,13 @@
     let playing = false;
     let dragging = false;
     let lastTime = null;            // previous frame timestamp, for real-time integration
+    let attractorShares = null;     // where the field converges from the centre (recomputed on cost change)
+
+    // Interior grid points (barycentric) for the flow-field arrows: i+j+k = FIELD_STEPS, each >= 1.
+    const FIELD = [];
+    for (let i = 1; i < FIELD_STEPS; i++)
+      for (let j = 1; j < FIELD_STEPS - i; j++)
+        FIELD.push([i / FIELD_STEPS, j / FIELD_STEPS, (FIELD_STEPS - i - j) / FIELD_STEPS]);
 
     // Where the flow has settled, or null if still moving: a strategy name if a share reached the
     // corner, else "coexistence" once the velocity has died with the population still mixed.
@@ -94,6 +107,64 @@
       const v = replicatorVelocity(shares, matrix);
       const speed = Math.abs(v[0]) + Math.abs(v[1]) + Math.abs(v[2]);
       return speed < CONVERGED_SPEED ? "coexistence" : null;
+    }
+
+    // The replicator velocity as a pixel-space vector: the share velocity mapped through the same
+    // linear barycentric->pixel transform (its components sum to 0, so this is a valid direction).
+    function pixelVelocity(point) {
+      const v = replicatorVelocity(point, matrix);
+      const [[tx, ty], [cx, cy], [ix, iy]] = TRIANGLE;
+      return [v[0] * tx + v[1] * cx + v[2] * ix, v[0] * ty + v[1] * cy + v[2] * iy];
+    }
+
+    // Settle from the centre to find where the flow converges (corner or coexistence point).
+    // Recomputed only when the cost changes (not every frame).
+    function computeAttractor() {
+      let s = [1 / 3, 1 / 3, 1 / 3];
+      for (let i = 0; i < 4000; i++) s = eulerStep(s, matrix, 0.05);
+      attractorShares = s;
+    }
+
+    // Build A: an arrow at each grid point pointing along the flow, length & weight ~ its speed
+    // (so arrows thin out near the attractor), plus a ring on the attractor itself.
+    function drawField() {
+      const bases = FIELD.map((p) => barycentricToPixel(p, TRIANGLE));
+      const vels = FIELD.map(pixelVelocity);
+      let maxMag = 1e-9;
+      for (const [vx, vy] of vels) maxMag = Math.max(maxMag, Math.hypot(vx, vy));
+      const scale = ARROW_MAX_PX / maxMag;
+      for (let i = 0; i < FIELD.length; i++) {
+        const [bx, by] = bases[i];
+        const [vx, vy] = vels[i];
+        const mag = Math.hypot(vx, vy);
+        if (mag < 1e-7) continue;
+        const ex = bx + vx * scale, ey = by + vy * scale;
+        const strength = mag / maxMag;
+        const style = `rgba(70,70,85,${0.18 + 0.5 * strength})`;
+        ctx.strokeStyle = style;
+        ctx.fillStyle = style;
+        ctx.lineWidth = 1 + 1.4 * strength;
+        ctx.beginPath();
+        ctx.moveTo(bx, by);
+        ctx.lineTo(ex, ey);
+        ctx.stroke();
+        const angle = Math.atan2(ey - by, ex - bx);
+        const head = 4 + 2 * strength;
+        ctx.beginPath();
+        ctx.moveTo(ex, ey);
+        ctx.lineTo(ex - head * Math.cos(angle - 0.4), ey - head * Math.sin(angle - 0.4));
+        ctx.lineTo(ex - head * Math.cos(angle + 0.4), ey - head * Math.sin(angle + 0.4));
+        ctx.closePath();
+        ctx.fill();
+      }
+      if (attractorShares) {
+        const [ax, ay] = barycentricToPixel(attractorShares, TRIANGLE);
+        ctx.beginPath();
+        ctx.arc(ax, ay, 11, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(20,20,20,0.55)";
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      }
     }
 
     // Faint ternary gridlines with share numbers (25/50/75) along each edge: right edge = Truth %,
@@ -173,6 +244,7 @@
     function render() {
       drawTriangle();
       drawGrid();
+      if (arrowsCheckbox.checked) drawField();
       drawTrail();
       readout.innerHTML = STRATEGIES.map((n, k) => shareLine(n, shares[k])).join("");
       const result = outcome();
@@ -246,9 +318,12 @@
       costSlider.value = String(percent);
       costValue.textContent = `${Number(percent)}%`;   // trims trailing zeros: 2, 4.36, 10
       matrix = costAdjustedMatrix(BASE_MATRIX, Number(percent));
+      computeAttractor();                              // the field's destination moves with the cost
+      render();                                        // morph the arrows live as the slider drags
     }
 
     costSlider.addEventListener("input", () => setCost(costSlider.value));
+    arrowsCheckbox.addEventListener("change", render);
 
     // Presets: jump to an interesting cost, restart from the current seed, and play it.
     document.querySelectorAll(".presets button").forEach((button) =>
@@ -262,6 +337,7 @@
       }),
     );
 
+    computeAttractor();
     render();
     requestAnimationFrame(frame);
   </script>
