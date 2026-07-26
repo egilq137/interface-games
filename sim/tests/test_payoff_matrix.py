@@ -108,8 +108,12 @@ def test_base_payoff_matrix_has_expected_shape_and_labels():
 # ==========================================================================
 
 def test_base_payoff_matrix_reproduces_table_3():
-    """Every cell of our cost-0 matrix matches the paper's Table 3 within tolerance."""
-    matrix = pm.base_payoff_matrix(400_000, fresh_rng(5))
+    """Every cell of our cost-0 matrix matches the paper's Table 3 within tolerance.
+
+    1,000,000 competitions per cell (the paper used 100,000,000) to shrink Monte-Carlo
+    variance and cover more of the territory-draw distribution.
+    """
+    matrix = pm.base_payoff_matrix(1_000_000, fresh_rng(5))
     for (focal, opponent), paper_value in PAPER_TABLE_3.items():
         assert matrix.payoff_of(focal, opponent) == pytest.approx(paper_value, abs=0.5), (
             f"{focal} vs {opponent}: got {matrix.payoff_of(focal, opponent):.2f}, paper {paper_value}"
