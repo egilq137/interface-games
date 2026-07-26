@@ -79,8 +79,7 @@
     const ARROW_HEAD_PX = 6;        // arrowhead length along the shaft
     const ARROW_HEAD_W = 3.4;       // arrowhead half-width
     const ARROW_COLOR = "#40404f";  // solid arrow colour (no opacity fade -> crisp)
-    const SHIMMER_RATE = 0.5;       // shimmer bobs per second
-    const SHIMMER_AMP_PX = 3.5;     // how far the arrow slides along its direction while bobbing
+    const SHIMMER_RATE = 0.7;       // shimmer pulses per second (how fast arrows flow forward)
 
     const canvas = document.getElementById("view");
     const ctx = canvas.getContext("2d");
@@ -134,9 +133,29 @@
       attractorShares = s;
     }
 
+    // One arrow glyph (shaft + filled head) of length `len` from (bx,by) along unit (ux,uy).
+    function drawArrowGlyph(bx, by, ux, uy, len, alpha) {
+      ctx.globalAlpha = alpha;
+      const neckX = bx + ux * (len - ARROW_HEAD_PX), neckY = by + uy * (len - ARROW_HEAD_PX);
+      const px = -uy, py = ux;
+      ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.lineTo(neckX, neckY);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(bx + ux * len, by + uy * len);   // tip
+      ctx.lineTo(neckX + px * ARROW_HEAD_W, neckY + py * ARROW_HEAD_W);
+      ctx.lineTo(neckX - px * ARROW_HEAD_W, neckY - py * ARROW_HEAD_W);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
     // Build A: a crisp arrow at each grid point pointing along the flow. Speed is encoded by
     // LENGTH (not opacity), so every arrow is solid and its head is easy to read; the shortest
-    // arrows sit near the attractor. Shimmer (optional) bobs the whole arrow along its direction.
+    // arrows sit near the attractor. Shimmer (optional): each arrow glides forward and fades out
+    // as it goes, so it always reads as moving toward where it points - two overlapping pulses
+    // (half a cycle apart) keep the field visible and hide the restart.
     function drawField() {
       const bases = FIELD.map((p) => barycentricToPixel(p, TRIANGLE));
       const vels = FIELD.map(pixelVelocity);
@@ -147,32 +166,23 @@
       ctx.lineWidth = 1.6;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
+      const phases = [shimmerT % 1, (shimmerT + 0.5) % 1];   // two flowing pulses, half a cycle apart
       for (let i = 0; i < FIELD.length; i++) {
         const [vx, vy] = vels[i];
         const mag = Math.hypot(vx, vy);
         if (mag < 1e-7) continue;
         const ux = vx / mag, uy = vy / mag;                          // unit flow direction
         const len = ARROW_MIN_PX + (ARROW_MAX_PX - ARROW_MIN_PX) * (mag / maxMag);
-        // shimmer: every arrow lunges forward together, in the direction it points, then returns
-        // (synchronized, same phase for all; forward-only via 0->1->0)
-        const bob = shimmerCheckbox.checked
-          ? (0.5 - 0.5 * Math.cos(shimmerT * 2 * Math.PI)) * SHIMMER_AMP_PX
-          : 0;
-        const bx = bases[i][0] + ux * bob, by = bases[i][1] + uy * bob;
-        const tipX = bx + ux * len, tipY = by + uy * len;            // arrowhead tip
-        const neckX = bx + ux * (len - ARROW_HEAD_PX);               // where the shaft stops
-        const neckY = by + uy * (len - ARROW_HEAD_PX);
-        const px = -uy, py = ux;                                     // perpendicular, for the head
-        ctx.beginPath();
-        ctx.moveTo(bx, by);
-        ctx.lineTo(neckX, neckY);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(tipX, tipY);
-        ctx.lineTo(neckX + px * ARROW_HEAD_W, neckY + py * ARROW_HEAD_W);
-        ctx.lineTo(neckX - px * ARROW_HEAD_W, neckY - py * ARROW_HEAD_W);
-        ctx.closePath();
-        ctx.fill();
+        const [bx, by] = bases[i];
+        if (!shimmerCheckbox.checked) {
+          drawArrowGlyph(bx, by, ux, uy, len, 1);
+          continue;
+        }
+        for (const phase of phases) {
+          const offset = phase * len;                                // glide forward by up to one length
+          const alpha = Math.sin(Math.PI * phase);                   // fade in from base, out as it advances
+          drawArrowGlyph(bx + ux * offset, by + uy * offset, ux, uy, len, alpha);
+        }
       }
       if (attractorShares) {
         const [ax, ay] = barycentricToPixel(attractorShares, TRIANGLE);
