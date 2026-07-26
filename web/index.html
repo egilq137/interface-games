@@ -153,9 +153,10 @@
         if (mag < 1e-7) continue;
         const ux = vx / mag, uy = vy / mag;                          // unit flow direction
         const len = ARROW_MIN_PX + (ARROW_MAX_PX - ARROW_MIN_PX) * (mag / maxMag);
-        // shimmer: slide the whole arrow back and forth along its own direction
+        // shimmer: every arrow lunges forward together, in the direction it points, then returns
+        // (synchronized, same phase for all; forward-only via 0->1->0)
         const bob = shimmerCheckbox.checked
-          ? Math.sin((shimmerT + i * 0.15) * 2 * Math.PI) * SHIMMER_AMP_PX
+          ? (0.5 - 0.5 * Math.cos(shimmerT * 2 * Math.PI)) * SHIMMER_AMP_PX
           : 0;
         const bx = bases[i][0] + ux * bob, by = bases[i][1] + uy * bob;
         const tipX = bx + ux * len, tipY = by + uy * len;            // arrowhead tip
