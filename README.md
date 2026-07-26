@@ -38,9 +38,10 @@ status; the full walkthrough and parameter ledger live in
   cost-1% and cost-10% matrices, Tables 4 & 5 (`sim/cost_layer.py`).
 - **Replicator equation** — the change-per-generation velocity `dx_i = x_i(f_i − f̄)`
   over the simplex, conserved and extinction-sticky (`sim/replicator.py`).
+- **Euler stepping** — integrate the velocity into a trajectory across the simplex
+  (S-curve takeover, clamp + renormalize each step), for animated paths (`sim/stepper.py`).
 
-Next: integrate the velocity into trajectories (Euler stepping), then the attractor /
-~4.27% bifurcation, then the interactive builds in `spec.txt`.
+Next: attractor detection / the ~4.27% bifurcation, then the interactive builds in `spec.txt`.
 
 ## Project layout
 
@@ -48,7 +49,7 @@ Next: integrate the velocity into trajectories (Euler stepping), then the attrac
   - `model.py` — the world: Gaussian utility and the competition sampler.
   - `competition.py` — the turn-taking game plus the perceptual strategies.
   - `array_types.py` — semantic array type aliases (shapes documented on hover).
-  - `tests/` — the pytest suite (111 tests, every function checked independently).
+  - `tests/` — the pytest suite (124 tests, every function checked independently).
 - `notes/` — model-spec walkthrough and reading notes on the source papers.
 - `spec.txt` — spec for the eventual interactive Figure-14 visualizations.
 - `papers/` — source PDFs (local only; git-ignored, as they are copyrighted).

@@ -74,6 +74,10 @@ PopulationVelocity: TypeAlias = Annotated[NDArray[np.floating], "shape (strategi
 """Replicator rate of change of each strategy's share; components sum to 0 (shares stay on the simplex).
 Example: [+0.975, -0.44, -0.53]."""
 
+SimplexTrajectory: TypeAlias = Annotated[NDArray[np.floating], "shape (generations + 1, strategies)"]
+"""A population's path over generations; row 0 = start, each later row = one Euler step. Every row
+is a PopulationShares (>= 0, sums to 1). Example (2 generations): [[0.5,0.3,0.2],[0.55,0.28,0.17],...]."""
+
 # --- flexible: elementwise helpers that accept a scalar or any-shaped array ---
 
 ResourceValues: TypeAlias = Annotated[NDArray[np.integer] | float, "scalar or array of any shape"]
