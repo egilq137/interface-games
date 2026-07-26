@@ -1,0 +1,9 @@
+{
+  "name": "interface-games-web",
+  "version": "0.1.0",
+  "description": "Interactive Figure-14 builds (vanilla JS + Canvas). Math core mirrors sim/.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}

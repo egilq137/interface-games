@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Simplex geometry check</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 24px; color: #222; }
+    h1 { font-size: 1.1rem; }
+    .row { display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap; }
+    canvas { border: 1px solid #ccc; border-radius: 6px; cursor: crosshair; touch-action: none; }
+    #readout { font-family: ui-monospace, monospace; font-size: 0.95rem; line-height: 1.7; min-width: 240px; }
+    .bar { display: inline-block; height: 10px; border-radius: 3px; vertical-align: middle; }
+    .swatch { display: inline-block; width: 11px; height: 11px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+    .truth { background: #1b9e77; } .cr3 { background: #7570b3; } .if3 { background: #d95f02; }
+    .inside { color: #1b7837; font-weight: 600; } .outside { color: #b2182b; font-weight: 600; }
+    p.hint { color: #666; font-size: 0.9rem; max-width: 40ch; }
+  </style>
+</head>
+<body>
+  <h1>Simplex geometry check &mdash; <code>web/geometry.js</code></h1>
+  <p class="hint">Move the mouse over the triangle to read the population shares at that point.
+    Click to drop a seed marker; clicking outside snaps it onto the simplex
+    (<code>clampToSimplex</code>), the same rule the dynamics use.</p>
+  <div class="row">
+    <canvas id="view" width="420" height="420"></canvas>
+    <div id="readout"></div>
+  </div>
+
+  <script type="module">
+    import { barycentricToPixel, pixelToBarycentric, isInsideTriangle, clampToSimplex } from "./geometry.js";
+
+    const COLORS = { Truth: "#1b9e77", CR3: "#7570b3", IF3: "#d95f02" };
+    const canvas = document.getElementById("view");
+    const ctx = canvas.getContext("2d");
+    const readout = document.getElementById("readout");
+
+    // Canonical order [Truth, CR3, IF3]: Truth top, CR3 bottom-left, IF3 bottom-right.
+    const TRIANGLE = [[210, 30], [30, 390], [390, 390]];
+    const LABELS = ["Truth", "CR3", "IF3"];
+
+    let hover = null;   // current mouse pixel
+    let seed = null;    // last clicked population (snapped onto the simplex)
+
+    function drawTriangle() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.beginPath();
+      TRIANGLE.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+      ctx.closePath();
+      ctx.fillStyle = "#f5f5fa";
+      ctx.fill();
+      ctx.strokeStyle = "#999";
+      ctx.stroke();
+      TRIANGLE.forEach(([x, y], k) => {
+        ctx.fillStyle = COLORS[LABELS[k]];
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.font = "600 13px system-ui, sans-serif";
+        const dy = k === 0 ? -12 : 18;
+        ctx.textAlign = "center";
+        ctx.fillText(LABELS[k], x, y + dy);
+      });
+    }
+
+    function marker(point, color) {
+      ctx.beginPath();
+      ctx.arc(point[0], point[1], 6, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#fff";
+      ctx.stroke();
+    }
+
+    function pct(v) { return (v * 100).toFixed(1).padStart(5) + "%"; }
+
+    function shareLine(name, value) {
+      const width = Math.max(0, value) * 120;
+      return `<div><span class="swatch ${name.toLowerCase()}"></span>${name.padEnd(5)} `
+        + `<span class="bar" style="width:${width}px;background:${COLORS[name]}"></span> ${pct(value)}</div>`;
+    }
+
+    function render() {
+      drawTriangle();
+      let html = "";
+      if (hover) {
+        const inside = isInsideTriangle(hover, TRIANGLE);
+        const shares = pixelToBarycentric(hover, TRIANGLE);
+        marker(hover, inside ? "#333" : "#b2182b");
+        html += `<div>cursor &rarr; shares</div>`;
+        LABELS.forEach((name, k) => (html += shareLine(name, shares[k])));
+        html += `<div>status: <span class="${inside ? "inside" : "outside"}">`
+          + `${inside ? "inside" : "outside"} the triangle</span></div>`;
+        html += `<div>sum: ${(shares[0] + shares[1] + shares[2]).toFixed(3)}</div>`;
+      } else {
+        html += `<div style="color:#666">move over the triangle&hellip;</div>`;
+      }
+      if (seed) {
+        marker(barycentricToPixel(seed, TRIANGLE), "#111");
+        html += `<hr /><div>seed (snapped)</div>`;
+        LABELS.forEach((name, k) => (html += shareLine(name, seed[k])));
+      }
+      readout.innerHTML = html;
+    }
+
+    function toPixel(event) {
+      const rect = canvas.getBoundingClientRect();
+      return [event.clientX - rect.left, event.clientY - rect.top];
+    }
+
+    canvas.addEventListener("mousemove", (e) => { hover = toPixel(e); render(); });
+    canvas.addEventListener("mouseleave", () => { hover = null; render(); });
+    canvas.addEventListener("click", (e) => {
+      seed = clampToSimplex(pixelToBarycentric(toPixel(e), TRIANGLE));
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
