@@ -46,7 +46,8 @@ status; the full walkthrough and parameter ledger live in
   from `spec.txt` on one simplex: the **flow field** of arrows (Build A) with a ring on the
   attractor, and a seed-and-**play trajectory** (Build B) riding the flow. A cost slider (0–100%)
   and presets (1% truth / 4.36% coexistence / 10% IF3) morph the field live; the arrows toggle
-  off for a clean trajectory. Math core (`web/model.js`, `web/geometry.js`) ports the validated
+  off for a clean trajectory, with an optional shimmer that animates the flow direction. Math
+  core (`web/model.js`, `web/geometry.js`) ports the validated
   `sim/` and is Node-tested; the cost flip (Truth → IF3) and the coexistence band are both live.
 
 The whole paper is now reproduced end to end — from the Monte-Carlo payoff derivation to an

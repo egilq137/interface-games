@@ -44,6 +44,7 @@
         <button id="play" class="primary">Play</button>
         <button id="reset">Reset</button>
         <label class="arrows"><input type="checkbox" id="arrows" checked /> flow field</label>
+        <label class="arrows"><input type="checkbox" id="shimmer" /> shimmer</label>
       </div>
       <label class="cost">perceptual cost: <b id="costValue">2%</b> of truth's payoff</label>
       <input id="cost" type="range" min="0" max="100" step="0.01" value="2" />
@@ -72,8 +73,9 @@
     const SETTLED = 0.999;          // a share above this = converged to that corner
     const CONVERGED_SPEED = 2e-3;   // total |velocity| below this = flow effectively stopped (corner or coexistence)
     const MAX_TRAIL = 700;
-    const FIELD_STEPS = 11;         // grid resolution for the flow-field arrows (interior points only)
-    const ARROW_MAX_PX = 26;        // pixel length of the strongest arrow (the rest scale to it)
+    const FIELD_STEPS = 18;         // grid resolution for the flow-field arrows (interior points only)
+    const ARROW_MAX_PX = 15;        // pixel length of the strongest arrow (the rest scale to it)
+    const SHIMMER_RATE = 0.55;      // flow-hint phase advanced per second (a dot's base->tip speed)
 
     const canvas = document.getElementById("view");
     const ctx = canvas.getContext("2d");
@@ -83,6 +85,7 @@
     const costValue = document.getElementById("costValue");
     const playButton = document.getElementById("play");
     const arrowsCheckbox = document.getElementById("arrows");
+    const shimmerCheckbox = document.getElementById("shimmer");
 
     let seedShares = [1 / 3, 1 / 3, 1 / 3];   // where Reset returns to
     let shares = seedShares.slice();
@@ -92,6 +95,7 @@
     let dragging = false;
     let lastTime = null;            // previous frame timestamp, for real-time integration
     let attractorShares = null;     // where the field converges from the centre (recomputed on cost change)
+    let shimmerT = 0;               // flow-hint phase, advanced by real time while shimmer is on
 
     // Interior grid points (barycentric) for the flow-field arrows: i+j+k = FIELD_STEPS, each >= 1.
     const FIELD = [];
@@ -156,6 +160,14 @@
         ctx.lineTo(ex - head * Math.cos(angle + 0.4), ey - head * Math.sin(angle + 0.4));
         ctx.closePath();
         ctx.fill();
+        if (shimmerCheckbox.checked) {
+          // a bright dot travelling base->tip hints flow direction; faster where the flow is faster
+          const f = (shimmerT * (0.4 + strength) + i * 0.137) % 1;
+          ctx.beginPath();
+          ctx.arc(bx + (ex - bx) * f, by + (ey - by) * f, 1.5 + 1.3 * strength, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(35,35,55,${0.45 + 0.4 * strength})`;
+          ctx.fill();
+        }
       }
       if (attractorShares) {
         const [ax, ay] = barycentricToPixel(attractorShares, TRIANGLE);
@@ -261,11 +273,14 @@
     }
 
     function frame(now) {
+      const elapsed = lastTime === null ? 0 : Math.min((now - lastTime) / 1000, MAX_FRAME_GAP);
+      const shimmering = shimmerCheckbox.checked && arrowsCheckbox.checked;
+      if (shimmering) shimmerT += elapsed * SHIMMER_RATE;
       if (playing) {
         // Advance simulation time by the REAL elapsed time * SIM_RATE, so the dot moves at the
         // true replicator velocity in real time - fast mid-field, slow near a corner - independent
         // of the frame rate. Integrate that in small fixed sub-steps for accuracy.
-        let simTime = Math.min((now - lastTime) / 1000, MAX_FRAME_GAP) * SIM_RATE;
+        let simTime = elapsed * SIM_RATE;
         while (simTime > 0 && !outcome()) {
           const dt = Math.min(MAX_SUBSTEP, simTime);
           shares = eulerStep(shares, matrix, dt);
@@ -275,6 +290,8 @@
         }
         if (outcome()) { playing = false; playButton.textContent = "Play"; }
         render();
+      } else if (shimmering) {
+        render();   // keep animating the shimmer while the trajectory is idle
       }
       lastTime = now;   // update every frame so a pause never causes a time jump on resume
       requestAnimationFrame(frame);
@@ -324,6 +341,7 @@
 
     costSlider.addEventListener("input", () => setCost(costSlider.value));
     arrowsCheckbox.addEventListener("change", render);
+    shimmerCheckbox.addEventListener("change", render);
 
     // Presets: jump to an interesting cost, restart from the current seed, and play it.
     document.querySelectorAll(".presets button").forEach((button) =>
