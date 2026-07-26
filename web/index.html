@@ -74,8 +74,13 @@
     const CONVERGED_SPEED = 2e-3;   // total |velocity| below this = flow effectively stopped (corner or coexistence)
     const MAX_TRAIL = 700;
     const FIELD_STEPS = 18;         // grid resolution for the flow-field arrows (interior points only)
-    const ARROW_MAX_PX = 15;        // pixel length of the strongest arrow (the rest scale to it)
-    const SHIMMER_RATE = 0.55;      // flow-hint phase advanced per second (a dot's base->tip speed)
+    const ARROW_MAX_PX = 20;        // pixel length of the fastest arrow
+    const ARROW_MIN_PX = 7;         // pixel length of the slowest arrow (still clearly visible)
+    const ARROW_HEAD_PX = 6;        // arrowhead length along the shaft
+    const ARROW_HEAD_W = 3.4;       // arrowhead half-width
+    const ARROW_COLOR = "#40404f";  // solid arrow colour (no opacity fade -> crisp)
+    const SHIMMER_RATE = 0.5;       // shimmer bobs per second
+    const SHIMMER_AMP_PX = 3.5;     // how far the arrow slides along its direction while bobbing
 
     const canvas = document.getElementById("view");
     const ctx = canvas.getContext("2d");
@@ -129,45 +134,44 @@
       attractorShares = s;
     }
 
-    // Build A: an arrow at each grid point pointing along the flow, length & weight ~ its speed
-    // (so arrows thin out near the attractor), plus a ring on the attractor itself.
+    // Build A: a crisp arrow at each grid point pointing along the flow. Speed is encoded by
+    // LENGTH (not opacity), so every arrow is solid and its head is easy to read; the shortest
+    // arrows sit near the attractor. Shimmer (optional) bobs the whole arrow along its direction.
     function drawField() {
       const bases = FIELD.map((p) => barycentricToPixel(p, TRIANGLE));
       const vels = FIELD.map(pixelVelocity);
       let maxMag = 1e-9;
       for (const [vx, vy] of vels) maxMag = Math.max(maxMag, Math.hypot(vx, vy));
-      const scale = ARROW_MAX_PX / maxMag;
+      ctx.strokeStyle = ARROW_COLOR;
+      ctx.fillStyle = ARROW_COLOR;
+      ctx.lineWidth = 1.6;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
       for (let i = 0; i < FIELD.length; i++) {
-        const [bx, by] = bases[i];
         const [vx, vy] = vels[i];
         const mag = Math.hypot(vx, vy);
         if (mag < 1e-7) continue;
-        const ex = bx + vx * scale, ey = by + vy * scale;
-        const strength = mag / maxMag;
-        const style = `rgba(70,70,85,${0.18 + 0.5 * strength})`;
-        ctx.strokeStyle = style;
-        ctx.fillStyle = style;
-        ctx.lineWidth = 1 + 1.4 * strength;
+        const ux = vx / mag, uy = vy / mag;                          // unit flow direction
+        const len = ARROW_MIN_PX + (ARROW_MAX_PX - ARROW_MIN_PX) * (mag / maxMag);
+        // shimmer: slide the whole arrow back and forth along its own direction
+        const bob = shimmerCheckbox.checked
+          ? Math.sin((shimmerT + i * 0.15) * 2 * Math.PI) * SHIMMER_AMP_PX
+          : 0;
+        const bx = bases[i][0] + ux * bob, by = bases[i][1] + uy * bob;
+        const tipX = bx + ux * len, tipY = by + uy * len;            // arrowhead tip
+        const neckX = bx + ux * (len - ARROW_HEAD_PX);               // where the shaft stops
+        const neckY = by + uy * (len - ARROW_HEAD_PX);
+        const px = -uy, py = ux;                                     // perpendicular, for the head
         ctx.beginPath();
         ctx.moveTo(bx, by);
-        ctx.lineTo(ex, ey);
+        ctx.lineTo(neckX, neckY);
         ctx.stroke();
-        const angle = Math.atan2(ey - by, ex - bx);
-        const head = 4 + 2 * strength;
         ctx.beginPath();
-        ctx.moveTo(ex, ey);
-        ctx.lineTo(ex - head * Math.cos(angle - 0.4), ey - head * Math.sin(angle - 0.4));
-        ctx.lineTo(ex - head * Math.cos(angle + 0.4), ey - head * Math.sin(angle + 0.4));
+        ctx.moveTo(tipX, tipY);
+        ctx.lineTo(neckX + px * ARROW_HEAD_W, neckY + py * ARROW_HEAD_W);
+        ctx.lineTo(neckX - px * ARROW_HEAD_W, neckY - py * ARROW_HEAD_W);
         ctx.closePath();
         ctx.fill();
-        if (shimmerCheckbox.checked) {
-          // a bright dot travelling base->tip hints flow direction; faster where the flow is faster
-          const f = (shimmerT * (0.4 + strength) + i * 0.137) % 1;
-          ctx.beginPath();
-          ctx.arc(bx + (ex - bx) * f, by + (ey - by) * f, 1.5 + 1.3 * strength, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(35,35,55,${0.45 + 0.4 * strength})`;
-          ctx.fill();
-        }
       }
       if (attractorShares) {
         const [ax, ay] = barycentricToPixel(attractorShares, TRIANGLE);
