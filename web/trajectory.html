@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Interface games &mdash; trajectory (Build B)</title>
+  <style>
+    :root { --truth: #1b9e77; --cr3: #7570b3; --if3: #d95f02; }
+    body { font-family: system-ui, sans-serif; margin: 24px; color: #222; }
+    h1 { font-size: 1.15rem; margin-bottom: 2px; }
+    .sub { color: #666; font-size: 0.9rem; margin: 0 0 16px; max-width: 62ch; }
+    .row { display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap; }
+    canvas { border: 1px solid #ccc; border-radius: 8px; cursor: crosshair; touch-action: none; }
+    .panel { min-width: 250px; }
+    .controls { display: flex; gap: 8px; margin-bottom: 14px; }
+    button { font: inherit; padding: 6px 14px; border: 1px solid #bbb; border-radius: 6px; background: #fafafa; cursor: pointer; }
+    button:hover { background: #f0f0f0; }
+    button.primary { background: var(--truth); color: #fff; border-color: var(--truth); }
+    label.cost { display: block; font-size: 0.92rem; margin-bottom: 4px; }
+    input[type=range] { width: 100%; }
+    .ticks { display: flex; justify-content: space-between; font-size: 0.72rem; color: #888; margin-top: -2px; }
+    #readout { font-family: ui-monospace, monospace; font-size: 0.92rem; line-height: 1.8; margin-top: 16px; }
+    .swatch { display: inline-block; width: 11px; height: 11px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+    .bar { display: inline-block; height: 10px; border-radius: 3px; vertical-align: middle; }
+    .status { margin-top: 10px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <h1>Interface games &mdash; the trajectory</h1>
+  <p class="sub">Click (or drag) inside the triangle to seed a starting population of the three
+    perceptual strategies, set the perceptual <b>cost</b>, and press <b>Play</b> to watch natural
+    selection carry it across the simplex. Low cost &rarr; truth wins; past ~4.27% &rarr; the
+    interface (IF3) wins. A strategy seeded at 0% can never enter.</p>
+
+  <div class="row">
+    <canvas id="view" width="440" height="440"></canvas>
+    <div class="panel">
+      <div class="controls">
+        <button id="play" class="primary">Play</button>
+        <button id="reset">Reset</button>
+      </div>
+      <label class="cost">perceptual cost: <b id="costValue">2.0%</b> of truth's payoff</label>
+      <input id="cost" type="range" min="0" max="10" step="0.1" value="2" />
+      <div class="ticks"><span>0%</span><span>~4.27% flip</span><span>10%</span></div>
+      <div id="readout"></div>
+      <div class="status" id="status">Seed a point and press Play.</div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { barycentricToPixel, pixelToBarycentric, isInsideTriangle, clampToSimplex } from "./geometry.js";
+    import { STRATEGIES, BASE_MATRIX, costAdjustedMatrix, eulerStep } from "./model.js";
+
+    const COLORS = { Truth: "#1b9e77", CR3: "#7570b3", IF3: "#d95f02" };
+    const TRIANGLE = [[220, 40], [40, 400], [400, 400]];   // [Truth, CR3, IF3]
+    const TIME_STEP = 0.03;         // per sub-step; small enough to look smooth
+    const STEPS_PER_FRAME = 2;      // sub-steps per animation frame (pace of the takeover)
+    const SETTLED = 0.999;          // a share above this = converged to that corner
+    const MAX_TRAIL = 700;
+
+    const canvas = document.getElementById("view");
+    const ctx = canvas.getContext("2d");
+    const readout = document.getElementById("readout");
+    const statusEl = document.getElementById("status");
+    const costSlider = document.getElementById("cost");
+    const costValue = document.getElementById("costValue");
+    const playButton = document.getElementById("play");
+
+    let seedShares = [1 / 3, 1 / 3, 1 / 3];   // where Reset returns to
+    let shares = seedShares.slice();
+    let trail = [barycentricToPixel(shares, TRIANGLE)];
+    let matrix = costAdjustedMatrix(BASE_MATRIX, Number(costSlider.value));
+    let playing = false;
+    let dragging = false;
+
+    function settledWinner() {
+      const lead = shares.indexOf(Math.max(...shares));
+      return shares[lead] >= SETTLED ? STRATEGIES[lead] : null;
+    }
+
+    function drawTriangle() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.beginPath();
+      TRIANGLE.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+      ctx.closePath();
+      ctx.fillStyle = "#f6f6fb";
+      ctx.fill();
+      ctx.strokeStyle = "#aaa";
+      ctx.stroke();
+      TRIANGLE.forEach(([x, y], k) => {
+        ctx.fillStyle = COLORS[STRATEGIES[k]];
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.font = "600 14px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(STRATEGIES[k], x, y + (k === 0 ? -13 : 20));
+      });
+    }
+
+    function drawTrail() {
+      for (let i = 1; i < trail.length; i++) {
+        const alpha = (i / trail.length) * 0.9;   // fade toward the tail
+        ctx.strokeStyle = `rgba(30,30,30,${alpha})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(trail[i - 1][0], trail[i - 1][1]);
+        ctx.lineTo(trail[i][0], trail[i][1]);
+        ctx.stroke();
+      }
+      const head = trail[trail.length - 1];
+      const lead = shares.indexOf(Math.max(...shares));
+      ctx.beginPath();
+      ctx.arc(head[0], head[1], 7, 0, Math.PI * 2);
+      ctx.fillStyle = COLORS[STRATEGIES[lead]];
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#fff";
+      ctx.stroke();
+    }
+
+    function shareLine(name, value) {
+      const width = Math.max(0, value) * 130;
+      return `<div><span class="swatch" style="background:${COLORS[name]}"></span>`
+        + `${name.padEnd(5)} <span class="bar" style="width:${width}px;background:${COLORS[name]}"></span> `
+        + `${(value * 100).toFixed(1).padStart(5)}%</div>`;
+    }
+
+    function render() {
+      drawTriangle();
+      drawTrail();
+      readout.innerHTML = STRATEGIES.map((n, k) => shareLine(n, shares[k])).join("");
+      const winner = settledWinner();
+      if (winner) {
+        statusEl.textContent = `Settled: ${winner} wins.`;
+        statusEl.style.color = COLORS[winner];
+      } else if (playing) {
+        statusEl.textContent = "Running…";
+        statusEl.style.color = "#444";
+      }
+    }
+
+    function frame() {
+      if (playing) {
+        for (let s = 0; s < STEPS_PER_FRAME && !settledWinner(); s++) {
+          shares = eulerStep(shares, matrix, TIME_STEP);
+          trail.push(barycentricToPixel(shares, TRIANGLE));
+          if (trail.length > MAX_TRAIL) trail.shift();
+        }
+        if (settledWinner()) { playing = false; playButton.textContent = "Play"; }
+        render();
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function seedAt(event) {
+      const rect = canvas.getBoundingClientRect();
+      const point = [event.clientX - rect.left, event.clientY - rect.top];
+      seedShares = clampToSimplex(pixelToBarycentric(point, TRIANGLE));
+      shares = seedShares.slice();
+      trail = [barycentricToPixel(shares, TRIANGLE)];
+      playing = false;
+      playButton.textContent = "Play";
+      statusEl.textContent = "Seeded. Press Play.";
+      statusEl.style.color = "#444";
+      render();
+    }
+
+    canvas.addEventListener("pointerdown", (e) => { dragging = true; seedAt(e); });
+    canvas.addEventListener("pointermove", (e) => { if (dragging) seedAt(e); });
+    window.addEventListener("pointerup", () => { dragging = false; });
+
+    playButton.addEventListener("click", () => {
+      if (settledWinner()) return;               // already converged; use Reset to rerun
+      playing = !playing;
+      playButton.textContent = playing ? "Pause" : "Play";
+      render();
+    });
+
+    document.getElementById("reset").addEventListener("click", () => {
+      shares = seedShares.slice();
+      trail = [barycentricToPixel(shares, TRIANGLE)];
+      playing = false;
+      playButton.textContent = "Play";
+      statusEl.textContent = "Reset to seed. Press Play.";
+      statusEl.style.color = "#444";
+      render();
+    });
+
+    costSlider.addEventListener("input", () => {
+      costValue.textContent = `${Number(costSlider.value).toFixed(1)}%`;
+      matrix = costAdjustedMatrix(BASE_MATRIX, Number(costSlider.value));
+    });
+
+    render();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>

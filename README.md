@@ -42,8 +42,12 @@ status; the full walkthrough and parameter ledger live in
   (S-curve takeover, clamp + renormalize each step), for animated paths (`sim/stepper.py`).
 - **Bifurcation search** — detect which corner the flow settles on (`attractor`) and find the
   cost band where Truth's win flips to IF3's; reproduces the paper's ~4.27% (`sim/bifurcation.py`).
+- **Interactive Build B (the trajectory)** — a vanilla-JS/Canvas page (`web/trajectory.html`):
+  seed a starting mix, set the cost, and watch replicator dynamics carry it to the winning
+  corner. Math core (`web/model.js`, `web/geometry.js`) ports the validated `sim/` and is
+  Node-tested; the cost flip (Truth → IF3) is live on the slider.
 
-Next: the interactive Figure-14 builds in `spec.txt`.
+Next: interactive Build A (the static arrow field with a cost slider) from `spec.txt`.
 
 ## Project layout
 
@@ -52,6 +56,10 @@ Next: the interactive Figure-14 builds in `spec.txt`.
   - `competition.py` — the turn-taking game plus the perceptual strategies.
   - `array_types.py` — semantic array type aliases (shapes documented on hover).
   - `tests/` — the pytest suite (131 tests, every function checked independently).
+- `web/` — the interactive builds (vanilla JS + Canvas). `model.js`/`geometry.js` mirror the
+  validated `sim/` math core, with Node tests (`cd web && node --test`); `trajectory.html` is
+  Build B; `geometry-check.html` is a visual geometry sanity page. Serve locally to open
+  (`python -m http.server` from `web/`), since ES-module imports need `http://`, not `file://`.
 - `notes/` — model-spec walkthrough and reading notes on the source papers.
 - `spec.txt` — spec for the eventual interactive Figure-14 visualizations.
 - `papers/` — source PDFs (local only; git-ignored, as they are copyrighted).
