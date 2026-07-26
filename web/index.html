@@ -101,11 +101,15 @@
     let attractorShares = null;     // where the field converges from the centre (recomputed on cost change)
     let shimmerT = 0;               // flow-hint phase, advanced by real time while shimmer is on
 
-    // Interior grid points (barycentric) for the flow-field arrows: i+j+k = FIELD_STEPS, each >= 1.
+    // Grid points (barycentric) for the flow-field arrows: i+j+k = FIELD_STEPS. Include the interior
+    // AND the edges (one strategy at 0, where the flow runs along the edge); skip only the 3 corners.
     const FIELD = [];
-    for (let i = 1; i < FIELD_STEPS; i++)
-      for (let j = 1; j < FIELD_STEPS - i; j++)
-        FIELD.push([i / FIELD_STEPS, j / FIELD_STEPS, (FIELD_STEPS - i - j) / FIELD_STEPS]);
+    for (let i = 0; i <= FIELD_STEPS; i++)
+      for (let j = 0; j <= FIELD_STEPS - i; j++) {
+        const k = FIELD_STEPS - i - j;
+        const zeros = (i === 0) + (j === 0) + (k === 0);
+        if (zeros <= 1) FIELD.push([i / FIELD_STEPS, j / FIELD_STEPS, k / FIELD_STEPS]);
+      }
 
     // Where the flow has settled, or null if still moving: a strategy name if a share reached the
     // corner, else "coexistence" once the velocity has died with the population still mixed.
@@ -166,7 +170,7 @@
       ctx.lineWidth = 1.6;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
-      const phases = [shimmerT % 1, (shimmerT + 0.5) % 1];   // two flowing pulses, half a cycle apart
+      const phases = [shimmerT % 1];   // single flowing pulse
       for (let i = 0; i < FIELD.length; i++) {
         const [vx, vy] = vels[i];
         const mag = Math.hypot(vx, vy);
