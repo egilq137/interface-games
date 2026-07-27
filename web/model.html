@@ -40,6 +40,8 @@
         <b>utility</b> of that amount, and utility is a <b>bell curve</b>: a mid-range quantity is best,
         both extremes are poor (think of a dose that can be too little or too much). Agents are paired at
         random and take turns claiming a territory; who moves first is a coin flip.</p>
+      <p class="eq">U(q) = A · exp( −(q − μ)² / 2σ² )</p>
+      <p class="eq small">amplitude A = 100, mean μ = 50, std. dev. σ = 20, quantity q ∈ {1, …, 100}</p>
       <figure>
         <img src="./figures/utility_curve.png" alt="Gaussian utility curve peaking near quantity 50" />
         <figcaption>The Gaussian utility we use (mean 50, standard deviation 20): the value of a
@@ -98,6 +100,10 @@
         mix). Every arrow in the interactive is that instantaneous push; a played trajectory is the path
         you get by following it, which always takes the tell-tale slow–fast–slow <b>S-curve</b> of a
         takeover.</p>
+      <p class="eq">dx<sub>i</sub>/dt = x<sub>i</sub> ( f<sub>i</sub> − <span class="ovl">f</span> )</p>
+      <p class="eq small">fitness f<sub>i</sub> = Σ<sub>j</sub> P<sub>ij</sub> x<sub>j</sub>
+        &nbsp;·&nbsp; average <span class="ovl">f</span> = Σ<sub>i</sub> x<sub>i</sub> f<sub>i</sub>
+        &nbsp;·&nbsp; x = population shares, P = cost-adjusted payoff matrix</p>
 
       <h2>The result</h2>
       <p>Sweep the cost and the winner flips. Below a critical cost the field drains to <b>Truth</b>;
