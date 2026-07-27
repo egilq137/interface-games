@@ -3,62 +3,99 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Interface games &mdash; trajectory (Build B)</title>
-  <style>
-    :root { --truth: #1b9e77; --cr3: #7570b3; --if3: #d95f02; }
-    body { font-family: system-ui, sans-serif; margin: 24px; color: #222; }
-    h1 { font-size: 1.15rem; margin-bottom: 2px; }
-    .sub { color: #666; font-size: 0.9rem; margin: 0 0 16px; max-width: 62ch; }
-    .row { display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap; }
-    canvas { border: 1px solid #ccc; border-radius: 8px; cursor: crosshair; touch-action: none; }
-    .panel { min-width: 250px; }
-    .controls { display: flex; gap: 8px; margin-bottom: 14px; }
-    button { font: inherit; padding: 6px 14px; border: 1px solid #bbb; border-radius: 6px; background: #fafafa; cursor: pointer; }
-    button:hover { background: #f0f0f0; }
-    button.primary { background: var(--truth); color: #fff; border-color: var(--truth); }
-    .presets { margin-top: 12px; align-items: center; }
-    .presets button { padding: 5px 10px; font-size: 0.85rem; }
-    .presetlabel { font-size: 0.85rem; color: #666; margin-right: 2px; }
-    label.cost { display: block; font-size: 0.92rem; margin-bottom: 4px; }
-    input[type=range] { width: 100%; }
-    .ticks { display: flex; justify-content: space-between; font-size: 0.72rem; color: #888; margin-top: -2px; }
-    #readout { font-family: ui-monospace, monospace; font-size: 0.92rem; line-height: 1.8; margin-top: 16px; }
-    .swatch { display: inline-block; width: 11px; height: 11px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
-    .bar { display: inline-block; height: 10px; border-radius: 3px; vertical-align: middle; }
-    .status { margin-top: 10px; font-weight: 600; }
-    label.arrows { font-size: 0.9rem; color: #444; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
-  </style>
+  <title>Interface Games — Does evolution favor truth?</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><polygon points='8,1 15,15 1,15' fill='%231b9e77'/></svg>" />
+  <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-  <h1>Interface games &mdash; Figure 14</h1>
-  <p class="sub">The <b>flow field</b> shows where selection pushes every population mix at the current
-    <b>cost</b> (arrows), with a ring on the attractor it converges to. Click (or drag) inside the
-    triangle to seed a starting mix and press <b>Play</b> to send a population riding along the flow.
-    Low cost &rarr; truth wins; past ~4.27% &rarr; the interface (IF3) wins. A strategy seeded at 0%
-    can never enter. Toggle the arrows to switch between the field and a clean trajectory.</p>
-
-  <div class="row">
-    <canvas id="view" width="460" height="460"></canvas>
-    <div class="panel">
-      <div class="controls">
-        <button id="play" class="primary">Play</button>
-        <button id="reset">Reset</button>
-        <label class="arrows"><input type="checkbox" id="arrows" checked /> flow field</label>
-        <label class="arrows"><input type="checkbox" id="shimmer" /> shimmer</label>
-      </div>
-      <label class="cost">perceptual cost: <b id="costValue">2%</b> of truth's payoff</label>
-      <input id="cost" type="range" min="0" max="100" step="0.01" value="2" />
-      <div class="ticks"><span>0%</span><span>50%</span><span>100%</span></div>
-      <div class="controls presets">
-        <span class="presetlabel">presets:</span>
-        <button data-cost="1">1% · truth</button>
-        <button data-cost="4.36">4.36% · coexist</button>
-        <button data-cost="10">10% · IF3</button>
-      </div>
-      <div id="readout"></div>
-      <div class="status" id="status">Seed a point and press Play.</div>
+  <header class="site">
+    <div class="bar">
+      <span class="brand">▲ Interface Games</span>
+      <nav>
+        <a href="./index.html" class="active">Explore</a>
+        <a href="./model.html">The model</a>
+        <a href="https://doi.org/10.1016/j.jtbi.2010.07.020" target="_blank" rel="noopener">Paper ↗</a>
+      </nav>
     </div>
+  </header>
+
+  <div class="wrap">
+    <section class="hero">
+      <h1>Does natural selection favor perceiving the truth?</h1>
+      <p class="lede">Most vision scientists assume it must: surely a creature that sees reality more
+        accurately out-competes one that doesn't. This interactive reproduces <b>Figure&nbsp;14</b> of
+        Mark, Marion &amp; Hoffman (2010), which shows the opposite can hold. Three perceptual
+        strategies compete — <span class="tag truth">Truth</span> (see reality exactly),
+        <span class="tag cr3">CR3</span> (a coarse but honest 3-category view), and
+        <span class="tag if3">IF3</span> (a cheap <i>interface</i> that hides reality but tracks what
+        matters). As perception gets <b>costly</b>, watch who survives.</p>
+      <p class="lede">Perception here is like a <b>desktop interface</b>: an icon isn't the file, but
+        it guides useful action for far less. The question is whether evolution keeps the truthful
+        view or the cheap useful one.</p>
+      <p class="cite">Mark, J. T., Marion, B. B., &amp; Hoffman, D. D. (2010). Natural selection and
+        veridical perceptions. <i>Journal of Theoretical Biology</i>, 266(4), 504–515.
+        <a href="https://doi.org/10.1016/j.jtbi.2010.07.020" target="_blank" rel="noopener">doi:10.1016/j.jtbi.2010.07.020</a>.
+        The payoffs driving this page were re-derived by Monte-Carlo simulation and validated against
+        the paper's tables — see <a href="./model.html">The model</a>.</p>
+    </section>
+
+    <main class="layout">
+      <section class="card visual">
+        <h2>Figure 14, live</h2>
+        <canvas id="view" width="460" height="460"></canvas>
+        <div class="controls" style="margin-top:14px">
+          <button id="play" class="primary">Play</button>
+          <button id="reset">Reset</button>
+          <label class="arrows"><input type="checkbox" id="arrows" checked /> flow field</label>
+          <label class="arrows"><input type="checkbox" id="shimmer" /> shimmer</label>
+        </div>
+        <label class="cost">perceptual cost: <b id="costValue">2%</b> of truth's payoff</label>
+        <input id="cost" type="range" min="0" max="100" step="0.01" value="2" />
+        <div class="ticks"><span>0%</span><span>50%</span><span>100%</span></div>
+        <div class="controls presets">
+          <span class="presetlabel">presets:</span>
+          <button data-cost="1">1% · truth</button>
+          <button data-cost="4.36">4.36% · coexist</button>
+          <button data-cost="10">10% · IF3</button>
+        </div>
+        <div id="readout"></div>
+        <div class="status" id="status">Seed a point and press Play.</div>
+      </section>
+
+      <aside class="card tutorial">
+        <h2>How to explore</h2>
+        <ol>
+          <li><b>Read the triangle.</b> Each point is a population mix of the three strategies. A
+            <span class="k">corner</span> = everyone runs that one strategy; an <span class="k">edge</span>
+            = one strategy is extinct; the <span class="k">interior</span> = all three coexist. Numbers
+            along each edge read off that strategy's share in steps of 25%.</li>
+          <li><b>See the flow field.</b> Every arrow shows which way selection pushes that mix, and the
+            ring marks the <span class="k">attractor</span> the whole field drains toward. Turn arrows
+            off for a clean view, or on <span class="k">shimmer</span> to feel the flow.</li>
+          <li><b>Turn the cost dial.</b> Drag the slider and watch the field re-aim. Cost is charged as a
+            percentage of what a truth-seer earns (why: see <a href="./model.html">The model</a>).</li>
+          <li><b>Try the presets.</b> <span class="k">1%</span> → the field drains to
+            <span class="tag truth">Truth</span>. <span class="k">10%</span> → it reverses to
+            <span class="tag if3">IF3</span>. <span class="k">4.36%</span> → a knife-edge where Truth and
+            IF3 <i>coexist</i>.</li>
+          <li><b>Seed and play a trajectory.</b> Click anywhere in the triangle to drop a starting mix,
+            then <span class="k">Play</span> to watch replicator dynamics carry it to the winner along an
+            S-curve. <span class="k">Reset</span> replays from the same seed.</li>
+          <li><b>Find the gotchas.</b> Seed a strategy at exactly 0% (on an edge) — it can never enter.
+            And notice <span class="tag cr3">CR3</span> dies whenever <span class="tag if3">IF3</span> is
+            present, at <i>every</i> cost: partial truth is no refuge.</li>
+        </ol>
+        <p style="font-size:0.9rem;color:var(--muted);margin:6px 0 0">The takeaway: below a critical
+          cost (~4.27%) the truthful strategy wins; above it, the interface that hides reality takes
+          over. Truth and fitness are not the same thing.</p>
+      </aside>
+    </main>
   </div>
+
+  <footer class="site">
+    <div class="wrap">Reproduction of Mark, Marion &amp; Hoffman (2010), Fig. 14 · payoffs derived by
+      Monte-Carlo and validated against the paper · <a href="./model.html">how it works</a>.</div>
+  </footer>
 
   <script type="module">
     import { barycentricToPixel, pixelToBarycentric, isInsideTriangle, clampToSimplex } from "./geometry.js";
@@ -73,7 +110,7 @@
     const SETTLED = 0.999;          // a share above this = converged to that corner
     const CONVERGED_SPEED = 2e-3;   // total |velocity| below this = flow effectively stopped (corner or coexistence)
     const MAX_TRAIL = 700;
-    const FIELD_STEPS = 18;         // grid resolution for the flow-field arrows (interior points only)
+    const FIELD_STEPS = 18;         // grid resolution for the flow-field arrows (interior + edges)
     const ARROW_MAX_PX = 20;        // pixel length of the fastest arrow
     const ARROW_MIN_PX = 7;         // pixel length of the slowest arrow (still clearly visible)
     const ARROW_HEAD_PX = 6;        // arrowhead length along the shaft
@@ -157,9 +194,8 @@
 
     // Build A: a crisp arrow at each grid point pointing along the flow. Speed is encoded by
     // LENGTH (not opacity), so every arrow is solid and its head is easy to read; the shortest
-    // arrows sit near the attractor. Shimmer (optional): each arrow glides forward and fades out
-    // as it goes, so it always reads as moving toward where it points - two overlapping pulses
-    // (half a cycle apart) keep the field visible and hide the restart.
+    // arrows sit near the attractor. Shimmer (optional): a single pulse per arrow glides forward
+    // and fades out as it goes, so it always reads as moving toward where it points.
     function drawField() {
       const bases = FIELD.map((p) => barycentricToPixel(p, TRIANGLE));
       const vels = FIELD.map(pixelVelocity);
@@ -170,7 +206,6 @@
       ctx.lineWidth = 1.6;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
-      const phases = [shimmerT % 1];   // single flowing pulse
       for (let i = 0; i < FIELD.length; i++) {
         const [vx, vy] = vels[i];
         const mag = Math.hypot(vx, vy);
@@ -182,11 +217,9 @@
           drawArrowGlyph(bx, by, ux, uy, len, 1);
           continue;
         }
-        for (const phase of phases) {
-          const offset = phase * len;                                // glide forward by up to one length
-          const alpha = Math.sin(Math.PI * phase);                   // fade in from base, out as it advances
-          drawArrowGlyph(bx + ux * offset, by + uy * offset, ux, uy, len, alpha);
-        }
+        const phase = shimmerT % 1;                                  // single flowing pulse
+        const offset = phase * len;                                  // glide forward by up to one length
+        drawArrowGlyph(bx + ux * offset, by + uy * offset, ux, uy, len, Math.sin(Math.PI * phase));
       }
       if (attractorShares) {
         const [ax, ay] = barycentricToPixel(attractorShares, TRIANGLE);
@@ -317,8 +350,12 @@
     }
 
     function seedAt(event) {
+      // Scale from CSS pixels to the canvas's internal 460x460 coordinate system (it's responsive).
       const rect = canvas.getBoundingClientRect();
-      const point = [event.clientX - rect.left, event.clientY - rect.top];
+      const point = [
+        (event.clientX - rect.left) * (canvas.width / rect.width),
+        (event.clientY - rect.top) * (canvas.height / rect.height),
+      ];
       seedShares = clampToSimplex(pixelToBarycentric(point, TRIANGLE));
       shares = seedShares.slice();
       trail = [barycentricToPixel(shares, TRIANGLE)];

@@ -1,0 +1,108 @@
+/* Shared styles for the Interface Games tutorial site (index.html + model.html). */
+:root {
+  --truth: #1b9e77;
+  --cr3: #7570b3;
+  --if3: #d95f02;
+  --ink: #222;
+  --muted: #667;
+  --line: #e3e3ea;
+  --bg: #ffffff;
+  --panel: #fbfbfd;
+  --accent: #1b9e77;
+  --maxw: 1100px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  line-height: 1.6;
+}
+a { color: var(--accent); }
+
+/* --- header / nav --- */
+header.site {
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  z-index: 10;
+}
+header.site .bar {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 12px 22px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+header.site .brand { font-weight: 700; font-size: 1rem; letter-spacing: -0.01em; }
+header.site nav a { margin-left: 18px; text-decoration: none; color: var(--muted); font-size: 0.92rem; }
+header.site nav a:hover, header.site nav a.active { color: var(--ink); }
+
+/* --- layout --- */
+.wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 22px; }
+.hero { padding: 34px 0 8px; }
+.hero h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 10px; letter-spacing: -0.02em; }
+.hero .lede { font-size: 1.08rem; color: #333; max-width: 68ch; margin: 0 0 14px; }
+.hero .cite {
+  font-size: 0.86rem; color: var(--muted); border-left: 3px solid var(--line);
+  padding: 6px 0 6px 14px; margin: 14px 0 0; max-width: 72ch;
+}
+
+/* two-pane app + tutorial */
+.layout { display: grid; grid-template-columns: minmax(0, 500px) 1fr; gap: 28px; align-items: start; padding: 22px 0 40px; }
+@media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+.card h2 { font-size: 1.05rem; margin: 0 0 12px; }
+
+/* --- the interactive app panel --- */
+canvas#view { width: 100%; max-width: 460px; height: auto; aspect-ratio: 1/1; border: 1px solid var(--line); border-radius: 8px; cursor: crosshair; touch-action: none; background: #fff; display: block; }
+.controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+button { font: inherit; padding: 6px 14px; border: 1px solid #ccc; border-radius: 7px; background: #fff; cursor: pointer; }
+button:hover { background: #f1f1f4; }
+button.primary { background: var(--truth); color: #fff; border-color: var(--truth); }
+label.arrows { font-size: 0.9rem; color: #444; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+label.cost { display: block; font-size: 0.92rem; margin-bottom: 4px; }
+input[type=range] { width: 100%; accent-color: var(--truth); }
+.ticks { display: flex; justify-content: space-between; font-size: 0.72rem; color: #999; margin-top: -2px; }
+.presets { margin-top: 12px; }
+.presets button { padding: 5px 10px; font-size: 0.85rem; }
+.presetlabel { font-size: 0.85rem; color: var(--muted); margin-right: 2px; }
+#readout { font-family: ui-monospace, "SF Mono", monospace; font-size: 0.92rem; line-height: 1.8; margin-top: 14px; }
+.swatch { display: inline-block; width: 11px; height: 11px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.bar { display: inline-block; height: 10px; border-radius: 3px; vertical-align: middle; }
+.status { margin-top: 10px; font-weight: 600; min-height: 1.4em; }
+
+/* --- tutorial steps --- */
+.tutorial ol { margin: 0; padding: 0; list-style: none; counter-reset: step; }
+.tutorial li { position: relative; padding: 0 0 16px 40px; counter-increment: step; }
+.tutorial li::before {
+  content: counter(step); position: absolute; left: 0; top: 0;
+  width: 26px; height: 26px; border-radius: 50%; background: var(--truth); color: #fff;
+  font-size: 0.85rem; font-weight: 700; display: grid; place-items: center;
+}
+.tutorial li b { color: var(--ink); }
+.tutorial .k { font-weight: 600; }
+.tag { color: #fff; border-radius: 4px; padding: 0 6px; font-size: 0.82em; font-weight: 600; }
+.tag.truth { background: var(--truth); } .tag.cr3 { background: var(--cr3); } .tag.if3 { background: var(--if3); }
+
+/* --- model.html article --- */
+article.model { padding: 26px 0 50px; max-width: 78ch; }
+article.model h2 { font-size: 1.25rem; margin: 34px 0 8px; letter-spacing: -0.01em; }
+article.model h2:first-of-type { margin-top: 8px; }
+article.model p { margin: 8px 0; }
+article.model figure { margin: 18px 0; }
+article.model figure img { width: 100%; border: 1px solid var(--line); border-radius: 10px; display: block; }
+article.model figcaption { font-size: 0.85rem; color: var(--muted); margin-top: 6px; }
+.callout { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--truth); border-radius: 8px; padding: 12px 16px; margin: 16px 0; }
+.pill { display: inline-block; font-size: 0.8rem; background: #eef6f3; color: #196; border-radius: 999px; padding: 2px 10px; margin: 2px 4px 2px 0; }
+
+footer.site { border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; }
+footer.site .wrap { padding: 20px 22px; }

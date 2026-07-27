@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The model — Interface Games</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><polygon points='8,1 15,15 1,15' fill='%231b9e77'/></svg>" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <header class="site">
+    <div class="bar">
+      <span class="brand">▲ Interface Games</span>
+      <nav>
+        <a href="./index.html">Explore</a>
+        <a href="./model.html" class="active">The model</a>
+        <a href="https://doi.org/10.1016/j.jtbi.2010.07.020" target="_blank" rel="noopener">Paper ↗</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <article class="model">
+      <h1 style="font-size:1.7rem;letter-spacing:-0.02em;margin:24px 0 6px">How the model works</h1>
+      <p style="color:var(--muted);margin-top:0">A guided tour of the machinery behind the
+        <a href="./index.html">interactive Figure 14</a> — the world, the three strategies, the cost of
+        perception, and the evolutionary dynamics — with the figures we produced while rebuilding it.</p>
+
+      <h2>Fitness is not truth</h2>
+      <p>The usual assumption is that clearer perception is fitter perception. But a trait is selected
+        for the <b>payoff of the behavior it guides</b>, not for how accurately it mirrors reality —
+        the two coincide only by accident. Perception can work like a <b>desktop interface</b>: a trash
+        icon shares none of the real properties of the file it points to, yet it guides useful action
+        for a fraction of the cost of understanding the hardware. The paper asks whether evolution keeps
+        the truthful view or the cheap useful one — and builds a game to find out.</p>
+
+      <h2>The world</h2>
+      <p>An organism faces three <b>territories</b>, each holding a resource whose quantity is a whole
+        number from 1 to 100 (drawn uniformly). What matters is not <i>how much</i> but the
+        <b>utility</b> of that amount, and utility is a <b>bell curve</b>: a mid-range quantity is best,
+        both extremes are poor (think of a dose that can be too little or too much). Agents are paired at
+        random and take turns claiming a territory; who moves first is a coin flip.</p>
+      <figure>
+        <img src="./figures/utility_curve.png" alt="Gaussian utility curve peaking near quantity 50" />
+        <figcaption>The Gaussian utility we use (mean 50, standard deviation 20): the value of a
+          territory as a function of its resource quantity. The peak in the middle is what makes a
+          non-truthful, utility-tuned perception possible.</figcaption>
+      </figure>
+
+      <h2>Three ways to perceive</h2>
+      <p>Each strategy is a rule for turning the true quantity into a perceptual category:</p>
+      <p><span class="pill">Truth</span> sees the exact quantity — all 100 values distinct — and always
+        picks the best available territory. Maximally accurate, maximally expensive.</p>
+      <p><span class="pill">CR3</span> (a <i>critical realist</i>) lumps quantities into just three
+        contiguous bands with two cut-points. Its categories still preserve the true order (a
+        <b>homomorphism</b>): higher category = higher quantity. Honest, but coarse.</p>
+      <p><span class="pill">IF3</span> (an <i>interface</i>) also uses three categories, but with
+        <b>four</b> cut-points, so a category can be <b>non-contiguous</b> — the two extremes get folded
+        into one label and the peak is isolated. This breaks the order-preserving link to reality, which
+        is exactly what lets it track <b>utility</b> instead of quantity.</p>
+      <div class="callout">The key structural fact: non-contiguity needs <i>more boundaries than
+        labels</i>. CR3's 2 cuts can only ever make 3 ordered bands; IF3's 4 cuts free it to map "too
+        little" and "too much" to the same perception — the move that mirrors what really matters.</div>
+      <figure>
+        <img src="./figures/cr3_landscape.png" alt="CR3 optimal category boundaries on the utility curve" />
+        <figcaption>CR3's optimal boundaries (our reproduction of the paper's Fig. 13A): three
+          contiguous bands bracketing the peak, at roughly quantity 31 and 71.</figcaption>
+      </figure>
+      <figure>
+        <img src="./figures/if3_landscape.png" alt="IF3 non-contiguous category boundaries on the utility curve" />
+        <figcaption>IF3's optimal boundaries (Fig. 13B): four cuts, three labels — the low and high
+          tails share a label, the peak stands alone. Same three-category budget, spent to isolate the
+          part of the world that pays.</figcaption>
+      </figure>
+
+      <h2>Deriving the payoffs</h2>
+      <p>The paper does not hand us closed-form payoffs for the three-strategy game; it reports payoff
+        <b>matrices</b> obtained by Monte-Carlo simulation (Appendix B). So we rebuilt the game — utility,
+        territories, turn-taking, and each strategy's perception — and computed the 3×3 matrix ourselves,
+        averaging <b>one million</b> random competitions per cell. Our cost-free matrix matches the
+        paper's Table 3 to within a few hundredths, which is the anchor that everything else rests on.</p>
+
+      <h2>The cost of perception</h2>
+      <p>Perception is charged in <b>bits</b>: to tell apart <i>N</i> categories you need log₂<i>N</i>
+        bits (binary-search style), and a strategy pays for two things — <b>seeing</b> which category a
+        territory is in, and <b>knowing</b> the utility of each category. Truth resolves 100 values, so
+        its "knowing" bill explodes; CR3 and IF3 only rank three categories.</p>
+      <div class="callout">Two consequences drive everything: (1) Truth costs about <b>16.5×</b> as much
+        as CR3 or IF3. (2) CR3 and IF3 have <b>identical</b> cost — so cost can never separate them;
+        their difference lives entirely in the raw payoffs. Cost only ever tilts Truth against the two
+        cheap strategies. The "cost" dial on the interactive is this bill, expressed as a percentage of
+        what a truth-seer earns.</div>
+
+      <h2>The dynamics</h2>
+      <p>With the cost-adjusted payoff matrix in hand, a population of the three strategies evolves by the
+        <b>replicator equation</b>: a strategy's share grows in proportion to how far its fitness beats
+        the population average, where fitness is frequency-dependent (who you meet depends on the current
+        mix). Every arrow in the interactive is that instantaneous push; a played trajectory is the path
+        you get by following it, which always takes the tell-tale slow–fast–slow <b>S-curve</b> of a
+        takeover.</p>
+
+      <h2>The result</h2>
+      <p>Sweep the cost and the winner flips. Below a critical cost the field drains to <b>Truth</b>;
+        above it, to <b>IF3</b>. In a thin band around <b>~4.27%</b> of truth's payoff they
+        <b>coexist</b>. And CR3 — partial truth — is driven extinct whenever IF3 is present, at
+        <i>every</i> cost: there is no safe middle ground.</p>
+      <figure>
+        <img src="./figures/bifurcation.png" alt="Bifurcation diagram: equilibrium share vs cost" />
+        <figcaption>The bifurcation: equilibrium population share against perceptual cost. Truth owns the
+          population at low cost, collapses through the shaded coexistence band, and hands off to IF3;
+          CR3 stays extinct throughout.</figcaption>
+      </figure>
+      <figure>
+        <img src="./figures/trajectories.png" alt="Replicator trajectories over time at low and high cost" />
+        <figcaption>The same even starting mix at 1% vs 10% cost. Cost alone flips the winner — and each
+          takeover is an S-curve. (This is the interactive's "Play", plotted against time.)</figcaption>
+      </figure>
+
+      <h2>Validation, and honesty</h2>
+      <p>Every published number checks out against our from-scratch model: Table 3 (cost 0), and Tables 4
+        and 5 (cost 1% and 10%), plus the ~4.27% bifurcation. The authors are careful about scope: the
+        result says selection <i>can</i> drive truth extinct, under assumptions — a static environment,
+        infinite well-mixed populations, fixed lifetime strategies, deterministic perception. Real
+        biology relaxes all of these. The claim is not that we never see truly, but that
+        <b>truth and fitness are logically distinct</b>, and once a genuine interface strategy exists,
+        neither whole truth nor partial truth reliably survives.</p>
+
+      <p style="margin-top:28px"><a href="./index.html">← Back to the interactive</a> &nbsp;·&nbsp;
+        <a href="https://doi.org/10.1016/j.jtbi.2010.07.020" target="_blank" rel="noopener">Read the
+        paper ↗</a></p>
+    </article>
+  </div>
+
+  <footer class="site">
+    <div class="wrap">Reproduction of Mark, Marion &amp; Hoffman (2010), Fig. 14 · payoffs derived by
+      Monte-Carlo and validated against the paper.</div>
+  </footer>
+</body>
+</html>
