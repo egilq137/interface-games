@@ -13,3 +13,6 @@ papers/
 
 # Personal Obsidian vault config (editor layout/state)
 .obsidian/
+
+# Local-only handoff/scratch notes (never committed)
+*.local.md
